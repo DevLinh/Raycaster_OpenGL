@@ -81,6 +81,11 @@ void drawPlayer() {
 	glVertex2i(px + pdx * 5, py + pdy * 5);
 	glEnd();
 }
+// tính khoảng cách 2 điểm A(ax,ay) và B(bx,by) trong mặt phẳng Oxy
+float dist(float ax, float ay, float bx, float by, float ang)
+{
+	return  (sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay))) ;
+}
 
 // tạo Ray - Tia
 void drawRays3D() 
@@ -99,6 +104,8 @@ void drawRays3D()
 		// Ta bắt đầu kiểm tra theo chiều NGANG
 		// cụ thể là kiểm tra theo từng hàng ngang trên lưới, nếu tia gặp chướng ngại vật thì ngắt tia tại đó
 		dof = 0;
+		// Khởi tạo khoảng cách ban đầu của tia thật lớn, đồng thơi lưu trữ vị trí chiều ngang của tia
+		float disH = 1000000, hx = px, hy = py;
 		float aTan = -1 / tan(ra);
 		//Kiểm tra tia hướng lên hay xuống dựa vào giá trị ra
 		if (ra > PI) // hướng lên
@@ -136,7 +143,8 @@ void drawRays3D()
 			mx = (int)(rx) >> 6;
 			my = (int)(ry) >> 6;
 			mp = my * mapX + mx;
-			if (mp > 0 && mp < mapX * mapY && map[mp] == 1) { dof = 8; }// tại vị trí đó là tường, thì dừng lại vòng lặp
+			// bây giờ mỗi khi thỏa mãn điều kiện, ta câp nhật tọa độ cho hx và hy, tính lại chiều dài - khoảng cách từ player tới vị trí tia giao nhau với tường ở hàng ngang
+			if (mp > 0 && mp < mapX * mapY && map[mp] == 1) { hx = rx; hy = ry; disH = dist(px,py,hx,hy,ra) ; dof = 8; }// tại vị trí đó là tường, thì dừng lại vòng lặp
 			//ngược lại tiếp tục vẽ dài tia cho đến khi gặp tượng theo hàng ngang
 			else
 			{
@@ -145,19 +153,14 @@ void drawRays3D()
 				dof += 1;
 			}
 		}
-		// vẽ tia
-		glColor3f(0, 1, 0); //tia xanh lá
-		glLineWidth(10); // độ dộng tia chỉ bằng 1
-		glBegin(GL_LINES);//vẽ đường
-		glVertex2i(px, py);
-		glVertex2i(rx, ry);
-		glEnd();
 		
 
 
 		// Ta bắt đầu kiểm tra theo chiều DỌC
 		// cụ thể là kiểm tra theo từng hàng ngang trên lưới, nếu tia gặp chướng ngại vật thì ngắt tia tại đó
 		dof = 0;
+		// Khởi tạo khoảng cách ban đầu của tia thật lớn, đồng thơi lưu trữ vị trí chiều dọc của tia
+		float disV = 1000000, vx = px, vy = py;
 		float nTan = -tan(ra); 
 		//Kiểm tra tia hướng lên hay xuống dựa vào giá trị ra
 		if (ra > P2 && ra < P3) // hướng trái
@@ -195,7 +198,7 @@ void drawRays3D()
 			mx = (int)(rx) >> 6;
 			my = (int)(ry) >> 6;
 			mp = my * mapX + mx;
-			if (mp > 0 && mp < mapX * mapY && map[mp] == 1) { dof = 8; }// tại vị trí đó là tường, thì dừng lại vòng lặp
+			if (mp > 0 && mp < mapX * mapY && map[mp] == 1) { vx = rx; vy = ry; disV = dist(px, py, vx, vy, ra); dof = 8; }// tại vị trí đó là tường, thì dừng lại vòng lặp
 			//ngược lại tiếp tục vẽ dài tia cho đến khi gặp tượng theo hàng ngang
 			else
 			{
@@ -204,6 +207,9 @@ void drawRays3D()
 				dof += 1;
 			}
 		}
+		// sau đó ta so sánh khoảng cách giữa vị trí player tới giao điểm của 2 tia tới vật cản, tìm được tia phù hợp
+		if (disH > disV) { rx = vx; ry = vy; }
+		if (disH < disV) { rx = hx; ry = hy; }
 		// vẽ tia
 		glColor3f(1, 0, 0); //tia đỏ
 		glLineWidth(1); // độ dộng tia chỉ bằng 1
