@@ -22,17 +22,6 @@ void display()
 	glutSwapBuffers();
 }
 
-// di chuyển player khi nhấn ADWS, hiện tại chỉ di chuyển ngang và dọc, chưa thể di chuyển chéo
-void buttons(unsigned char key, int x, int y)
-{
-	// di chuyển vị trí 1 khoảng 5 đơn vị tùy hướng di chuyển
-	if (key == 'a') { px -= 5; }; // 'a' thì di chuyển qua trái, vị trí bị dịch chuyển giảm trên trục hoành 1 khoảng 5 đơn vị
-	if (key == 'd') { px += 5; }; // ngược lại với 'a'
-	if (key == 'w') { py -= 5; } // 'w' thì di chuyển lên, vị trí dịch chuyển lại gần về 0 trên trục tung, vị trí bị dịch chuyển 1 khoảng 5 đơn vị trên trục tung
-	if (key == 's') { py += 5; } // ngược lại với 'w'
-	glutPostRedisplay(); // tiến hành vẽ lại trên màn hình mỗi khi nhấn phím
-}
-
 void init()
 {
 	//set màu nền về màu đen xám
@@ -53,8 +42,6 @@ int main(int argc, char** argv)
 	glutCreateWindow("Raycaster");
 	init();
 	glutDisplayFunc(display);
-	// set Keyboard Func là hàm buttons, di chuyển player
-	glutKeyboardFunc(buttons);
 	glutMainLoop();
 	return 0;
 }
