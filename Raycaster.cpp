@@ -3,6 +3,8 @@
 #include "Dependencies/freeglut/freeglut.h"
 #include <math.h>
 #define PI 3.141592653589793238462643383279502884197169399375105820974944592307816406286
+#define P2 PI/2
+#define P3 3*PI/2
 
 float px, py, pdx, pdy, pa;
 //px, py vị trí của player
@@ -93,10 +95,11 @@ void drawRays3D()
 	// ta bắt đầu với 1 tia (r < 1) :D
 	for (r = 0; r < 1; r++)
 	{
-		// Ta bắt đầu kiểm tra theo chiều ngang
+		/*
+		// Ta bắt đầu kiểm tra theo chiều NGANG
 		// cụ thể là kiểm tra theo từng hàng ngang trên lưới, nếu tia gặp chướng ngại vật thì ngắt tia tại đó
 		dof = 0;
-		float aTan = -1 / tan(ra); //aTan là giá trị tan của góc ra (góc của tia)
+		float aTan = -1 / tan(ra);
 		//Kiểm tra tia hướng lên hay xuống dựa vào giá trị ra
 		if (ra > PI) // hướng lên
 		{
@@ -141,14 +144,73 @@ void drawRays3D()
 				ry += y0;
 				dof += 1;
 			}
-			// vẽ tia
-			glColor3f(0, 1, 0); //tia xanh lá
-			glLineWidth(1); // độ dộng tia chỉ bằng 1
-			glBegin(GL_LINES);//vẽ đường
-			glVertex2i(px, py);
-			glVertex2i(rx,ry);
-			glEnd();
 		}
+		// vẽ tia
+		glColor3f(0, 1, 0); //tia xanh lá
+		glLineWidth(1); // độ dộng tia chỉ bằng 1
+		glBegin(GL_LINES);//vẽ đường
+		glVertex2i(px, py);
+		glVertex2i(rx, ry);
+		glEnd();
+		*/
+
+
+		// Ta bắt đầu kiểm tra theo chiều DỌC
+		// cụ thể là kiểm tra theo từng hàng ngang trên lưới, nếu tia gặp chướng ngại vật thì ngắt tia tại đó
+		dof = 0;
+		float nTan = -tan(ra); 
+		//Kiểm tra tia hướng lên hay xuống dựa vào giá trị ra
+		if (ra > P2 && ra < P3) // hướng trái
+		{
+			rx = (((int)px >> 6) << 6) - 0.0001;
+			// trước hết ép py sang kiểu số nguyên để sử dụng phép dịch
+			// phép dịch với tham số thứ 6 là số 6 tương đương với phép nhân với 2^6 đối với dịch trái và chia cho 2^6 đối với dịch phải
+			// 2^6 = 64, vị trí mỗi hàng ngang trên lưới trên trục y lần lượt là 0, 64, 128, 192, ...
+			// ví dụ py = 150, py >> 6 <=> 150 / 64 = 2, 2 << 6 <=> 2 * 64 = 128, ta trừ thêm  0.0001 làm tỷ lệ sai số do ép py sang int, có thể có hoặt có thể không trừ
+			// vậy ta tìm ra hàng ngang giao với tia gần nhất theo hướng đi lên có ry gần bằng 128 (ry = 127.9999)
+			// các tham số dưới được GIẢI THÍCH cụ thể hơn trong BÁO CÁO
+			ry = (px - rx) * nTan + py;
+			x0 = -64;
+			y0 = -x0 * nTan;
+		}
+		if (ra < P2 || ra > P3) // hướng phải
+		{
+			rx = (((int)px >> 6) << 6) + 64;
+			// player ở giữa 2 hàng ngang, hàng phía trên gần nhất đã được xác định nhờ các giải thích bên trên
+			// vì vậy để tìm được hàng gần nhất hướng xuống dưới, ta đơn giản lấy hàng cách hàng gần nhất ở trên một khoảng bằng 64
+			ry = (px - rx) * nTan + py;
+			x0 = 64;
+			y0 = -x0 * nTan;
+		}
+		if (ra == 0 || ra == PI) // trường hợp tia năm dọc thì tạm thời nhìn thẳng
+		{
+			rx = px;
+			ry = py;
+			dof = 8;
+		}
+		//chúng ta ko thê kiễm tra mãi được
+		while (dof < 8)
+		{
+			//my và my là tọa độ
+			mx = (int)(rx) >> 6;
+			my = (int)(ry) >> 6;
+			mp = my * mapX + mx;
+			if (mp < mapX * mapY && map[mp] == 1) { dof = 8; }// tại vị trí đó là tường, thì dừng lại vòng lặp
+			//ngược lại tiếp tục vẽ dài tia cho đến khi gặp tượng theo hàng ngang
+			else
+			{
+				rx += x0;
+				ry += y0;
+				dof += 1;
+			}
+		}
+		// vẽ tia
+		glColor3f(1, 0, 0); //tia đỏ
+		glLineWidth(1); // độ dộng tia chỉ bằng 1
+		glBegin(GL_LINES);//vẽ đường
+		glVertex2i(px, py);
+		glVertex2i(rx, ry);
+		glEnd();
 	}
 }
 
