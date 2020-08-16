@@ -75,9 +75,81 @@ void drawPlayer() {
 	glBegin(GL_LINES);
 	//vị trí player chính là điểm đầu của thanh điều hướng
 	glVertex2i(px, py);
-	// điểm còn lại được xác định theo góc pa, truy nhiên pdx và pdx các player 1 khoảng nhó, ta nhân đồng thời với 10 để tăng chiều dài của thanh điều hướng
+	// điểm còn lại được xác định theo góc pa, truy nhiên pdx và pdx các player 1 khoảng nhó, ta nhân đồng thời với 5 để tăng chiều dài của thanh điều hướng
 	glVertex2i(px + pdx * 5, py + pdy * 5);
 	glEnd();
+}
+
+// tạo Ray - Tia
+void drawRays3D() 
+{
+	int r, mx, my, mp, dof;
+	float rx, ry, ra, x0, y0; 
+	// ra: rays angle (góc của các tia)
+	// gán góc của tia bằng góc của người chơi
+	// rx, ry là tọa độ vị trí giao điểm của tia với hàng ngang gần điểm gần player nhất theo hướng trên lưới
+	// x0, y0 là các khoảng cố định để tìm ra tọa độ giao với tường theo chiều ngang, sẽ được giải thích cụ thế trong bài báo cáo
+	ra = pa;
+	// ta bắt đầu với 1 tia (r < 1) :D
+	for (r = 0; r < 1; r++)
+	{
+		// Ta bắt đầu kiểm tra theo chiều ngang
+		// cụ thể là kiểm tra theo từng hàng ngang trên lưới, nếu tia gặp chướng ngại vật thì ngắt tia tại đó
+		dof = 0;
+		float aTan = -1 / tan(ra); //aTan là giá trị tan của góc ra (góc của tia)
+		//Kiểm tra tia hướng lên hay xuống dựa vào giá trị ra
+		if (ra > PI) // hướng lên
+		{
+			ry = (((int)py >> 6) << 6) - 0.0001; 
+			// trước hết ép py sang kiểu số nguyên để sử dụng phép dịch
+			// phép dịch với tham số thứ 6 là số 6 tương đương với phép nhân với 2^6 đối với dịch trái và chia cho 2^6 đối với dịch phải
+			// 2^6 = 64, vị trí mỗi hàng ngang trên lưới trên trục y lần lượt là 0, 64, 128, 192, ...
+			// ví dụ py = 150, py >> 6 <=> 150 / 64 = 2, 2 << 6 <=> 2 * 64 = 128, ta trừ thêm  0.0001 làm tỷ lệ sai số do ép py sang int, có thể có hoặt có thể không trừ
+			// vậy ta tìm ra hàng ngang giao với tia gần nhất theo hướng đi lên có ry gần bằng 128 (ry = 127.9999)
+			// các tham số dưới được GIẢI THÍCH cụ thể hơn trong BÁO CÁO
+			rx = (py - ry) * aTan + px;
+			y0 = -64;
+			x0 = -y0 * aTan;
+		}
+		if (ra < PI) // hướng xuống
+		{
+			ry = (((int)py >> 6) << 6) + 64; 
+			// player ở giữa 2 hàng ngang, hàng phía trên gần nhất đã được xác định nhờ các giải thích bên trên
+			// vì vậy để tìm được hàng gần nhất hướng xuống dưới, ta đơn giản lấy hàng cách hàng gần nhất ở trên một khoảng bằng 64
+			rx = (py - ry) * aTan + px;
+			y0 = 64;
+			x0 = -y0 * aTan;
+		}
+		if (ra == 0 || ra == PI) // trường hợp tia năm ngang thì tạm thời nhìn thẳng
+		{
+			rx = px;
+			ry = py;
+			dof = 8;
+		}
+		//chúng ta ko thê kiễm tra mãi được
+		while (dof < 8)
+		{
+			//my và my là tọa độ
+			mx = (int)(rx) >> 6;
+			my = (int)(ry) >> 6;
+			mp = my * mapX + mx;
+			if (mp < mapX * mapY && map[mp] == 1) { dof = 8; }// tại vị trí đó là tường, thì dừng lại vòng lặp
+			//ngược lại tiếp tục vẽ dài tia cho đến khi gặp tượng theo hàng ngang
+			else
+			{
+				rx += x0;
+				ry += y0;
+				dof += 1;
+			}
+			// vẽ tia
+			glColor3f(0, 1, 0); //tia xanh lá
+			glLineWidth(1); // độ dộng tia chỉ bằng 1
+			glBegin(GL_LINES);//vẽ đường
+			glVertex2i(px, py);
+			glVertex2i(rx,ry);
+			glEnd();
+		}
+	}
 }
 
 void display()
@@ -87,6 +159,8 @@ void display()
 	drawMap2D();
 	//gọi hàm vẽ Player vào display
 	drawPlayer();
+	//gọi hàm vẽ tia
+	drawRays3D();
 	glutSwapBuffers();
 }
 
