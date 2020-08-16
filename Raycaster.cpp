@@ -5,6 +5,54 @@
 
 float px, py; // vị trí của player
 
+int mapX = 8, mapY = 8, mapS = 64; // bản đồ là một lưới vuông kích thước 8x8, mỗi ô có chiều dài cạnh là 64
+// ta lưu trữ thông tin của bản đồ trong 1 mảng 1 chiều 64 phần tử, giá trị 1 đại diện cho tường, chướng ngại vật
+// 0 đại diện cho khoảng không
+int map[] =
+{
+	1,1,1,1,1,1,1,1,
+	1,0,0,0,0,0,0,1,
+	1,0,0,1,0,0,0,1,
+	1,0,0,0,0,0,0,1,
+	1,0,0,0,0,0,0,1,
+	1,0,0,0,1,1,0,1,
+	1,0,0,0,0,0,0,1,
+	1,1,1,1,1,1,1,1
+};
+
+// khởi tạo hàm vẽ bản đồ lên màn hình
+void drawMap2D()
+{
+	int x, y, x0, y0;
+	for (y = 0;y < mapY;y++) {
+		for (x = 0;x < mapX;x++) {
+			if (map[y * mapX + x] == 1) {
+				glColor3f(1, 1, 1); // tường màu trắng
+			}
+			else {
+				glColor3f(0, 0, 0); // khoảng không thì màu đen
+			}
+			x0 = x * mapS;
+			y0 = y * mapS;
+			glBegin(GL_QUADS); // gọi vẽ hình thang trong GL, ta dùng nó vẽ hình vuông
+			//(x0,y0)--------------(x0+mapS, y0)
+			//   |						|
+			//   |						|
+			//   |						|
+			//   |						|
+			//   |						|
+			//   |						|
+			//   |						|
+			//(x0,y0+mapS)---------(x0+mapS,y0+mapS)
+			glVertex2i(x0, y0);
+			glVertex2i(x0, y0 + mapS);
+			glVertex2i(x0 + mapS, y0 + mapS);
+			glVertex2i(x0 + mapS, y0);
+			glEnd();
+		}
+	}
+}
+
 //khởi tạo hàm vẽ người chơi trên bản đồ
 void drawPlayer() {
 	glColor3f(1, 1, 0); // màu vàng
@@ -17,6 +65,8 @@ void drawPlayer() {
 void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	//gọi hàm vẽ Map
+	drawMap2D();
 	//gọi hàm vẽ Player vào display
 	drawPlayer();
 	glutSwapBuffers();
