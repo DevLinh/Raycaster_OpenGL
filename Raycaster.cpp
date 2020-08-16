@@ -95,7 +95,7 @@ void drawRays3D()
 	// ta bắt đầu với 1 tia (r < 1) :D
 	for (r = 0; r < 1; r++)
 	{
-		/*
+		
 		// Ta bắt đầu kiểm tra theo chiều NGANG
 		// cụ thể là kiểm tra theo từng hàng ngang trên lưới, nếu tia gặp chướng ngại vật thì ngắt tia tại đó
 		dof = 0;
@@ -136,7 +136,7 @@ void drawRays3D()
 			mx = (int)(rx) >> 6;
 			my = (int)(ry) >> 6;
 			mp = my * mapX + mx;
-			if (mp < mapX * mapY && map[mp] == 1) { dof = 8; }// tại vị trí đó là tường, thì dừng lại vòng lặp
+			if (mp > 0 && mp < mapX * mapY && map[mp] == 1) { dof = 8; }// tại vị trí đó là tường, thì dừng lại vòng lặp
 			//ngược lại tiếp tục vẽ dài tia cho đến khi gặp tượng theo hàng ngang
 			else
 			{
@@ -147,12 +147,12 @@ void drawRays3D()
 		}
 		// vẽ tia
 		glColor3f(0, 1, 0); //tia xanh lá
-		glLineWidth(1); // độ dộng tia chỉ bằng 1
+		glLineWidth(10); // độ dộng tia chỉ bằng 1
 		glBegin(GL_LINES);//vẽ đường
 		glVertex2i(px, py);
 		glVertex2i(rx, ry);
 		glEnd();
-		*/
+		
 
 
 		// Ta bắt đầu kiểm tra theo chiều DỌC
@@ -195,7 +195,7 @@ void drawRays3D()
 			mx = (int)(rx) >> 6;
 			my = (int)(ry) >> 6;
 			mp = my * mapX + mx;
-			if (mp < mapX * mapY && map[mp] == 1) { dof = 8; }// tại vị trí đó là tường, thì dừng lại vòng lặp
+			if (mp > 0 && mp < mapX * mapY && map[mp] == 1) { dof = 8; }// tại vị trí đó là tường, thì dừng lại vòng lặp
 			//ngược lại tiếp tục vẽ dài tia cho đến khi gặp tượng theo hàng ngang
 			else
 			{
