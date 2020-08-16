@@ -1,7 +1,9 @@
 ﻿// Raycaster_OpenGL.cpp : This file contains the 'main' function. Program execution begins and ends there.
 #include "Dependencies/glew/glew.h"
 #include "Dependencies/freeglut/freeglut.h"
+#include <math.h>
 
+float px, py; // vị trí của player
 
 void display()
 {
