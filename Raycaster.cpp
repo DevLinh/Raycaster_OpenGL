@@ -97,12 +97,14 @@ void drawRays2D()
 	// rx, ry là tọa độ vị trí giao điểm của tia với hàng ngang gần điểm gần player nhất theo hướng trên lưới
 	// x0, y0 là các khoảng cố định để tìm ra tọa độ giao với tường theo chiều ngang, sẽ được giải thích cụ thế trong bài báo cáo
 	
+	//tạo một biến lưu trữ khoảng cách sau khi quyết định chọn tia nào
+	float disF;
 	//ta thử làm tia lệch 30 độ so với hướng nhìn của player hay lệch so với thanh điều hướng
 	ra = pa - DR * 30; if (ra < 0) { ra += 2 * PI; } if (ra > 2 * PI) { ra -= 2 * PI; }
 	// ta bắt đầu với 1 tia (r < 1) :D
 	for (r = 0; r < 60; r++)
 	{
-		
+
 		// Ta bắt đầu kiểm tra theo chiều NGANG
 		// cụ thể là kiểm tra theo từng hàng ngang trên lưới, nếu tia gặp chướng ngại vật thì ngắt tia tại đó
 		dof = 0;
@@ -112,7 +114,7 @@ void drawRays2D()
 		//Kiểm tra tia hướng lên hay xuống dựa vào giá trị ra
 		if (ra > PI) // hướng lên
 		{
-			ry = (((int)py >> 6) << 6) - 0.0001; 
+			ry = (((int)py >> 6) << 6) - 0.0001;
 			// trước hết ép py sang kiểu số nguyên để sử dụng phép dịch
 			// phép dịch với tham số thứ 6 là số 6 tương đương với phép nhân với 2^6 đối với dịch trái và chia cho 2^6 đối với dịch phải
 			// 2^6 = 64, vị trí mỗi hàng ngang trên lưới trên trục y lần lượt là 0, 64, 128, 192, ...
@@ -125,7 +127,7 @@ void drawRays2D()
 		}
 		if (ra < PI) // hướng xuống
 		{
-			ry = (((int)py >> 6) << 6) + 64; 
+			ry = (((int)py >> 6) << 6) + 64;
 			// player ở giữa 2 hàng ngang, hàng phía trên gần nhất đã được xác định nhờ các giải thích bên trên
 			// vì vậy để tìm được hàng gần nhất hướng xuống dưới, ta đơn giản lấy hàng cách hàng gần nhất ở trên một khoảng bằng 64
 			rx = (py - ry) * aTan + px;
@@ -146,7 +148,7 @@ void drawRays2D()
 			my = (int)(ry) >> 6;
 			mp = my * mapX + mx;
 			// bây giờ mỗi khi thỏa mãn điều kiện, ta câp nhật tọa độ cho hx và hy, tính lại chiều dài - khoảng cách từ player tới vị trí tia giao nhau với tường ở hàng ngang
-			if (mp > 0 && mp < mapX * mapY && map[mp] == 1) { hx = rx; hy = ry; disH = dist(px,py,hx,hy,ra) ; dof = 8; }// tại vị trí đó là tường, thì dừng lại vòng lặp
+			if (mp > 0 && mp < mapX * mapY && map[mp] == 1) { hx = rx; hy = ry; disH = dist(px, py, hx, hy, ra); dof = 8; }// tại vị trí đó là tường, thì dừng lại vòng lặp
 			//ngược lại tiếp tục vẽ dài tia cho đến khi gặp tượng theo hàng ngang
 			else
 			{
@@ -155,7 +157,7 @@ void drawRays2D()
 				dof += 1;
 			}
 		}
-		
+
 
 
 		// Ta bắt đầu kiểm tra theo chiều DỌC
@@ -163,7 +165,7 @@ void drawRays2D()
 		dof = 0;
 		// Khởi tạo khoảng cách ban đầu của tia thật lớn, đồng thơi lưu trữ vị trí chiều dọc của tia
 		float disV = 1000000, vx = px, vy = py;
-		float nTan = -tan(ra); 
+		float nTan = -tan(ra);
 		//Kiểm tra tia hướng lên hay xuống dựa vào giá trị ra
 		if (ra > P2 && ra < P3) // hướng trái
 		{
@@ -210,8 +212,8 @@ void drawRays2D()
 			}
 		}
 		// sau đó ta so sánh khoảng cách giữa vị trí player tới giao điểm của 2 tia tới vật cản, tìm được tia phù hợp
-		if (disH > disV) { rx = vx; ry = vy; }
-		if (disH < disV) { rx = hx; ry = hy; }
+		if (disH > disV) { rx = vx; ry = vy; disF = disV; }
+		if (disH < disV) { rx = hx; ry = hy; disF = disH; }
 		// vẽ tia
 		glColor3f(1, 0, 0); //tia đỏ
 		glLineWidth(1); // độ dộng tia chỉ bằng 1
@@ -219,6 +221,23 @@ void drawRays2D()
 		glVertex2i(px, py);
 		glVertex2i(rx, ry);
 		glEnd();
+
+		//3D WALL
+		// tiến hành vẽ các bức tường 3D bên màn hình phải
+		// ta sẽ biễu diễn cảnh 3D trên màn hình kích thước 320x160px, khoảng cách càng xa thì vât càng nhỏ
+		// mapS = 64 chính là kích thước của hình vuông trên 2D, cũng chính là kích thước khối lập phương trên không gian 3D, chính vì thế mỗi đường vẽ lên cảnh 3d sẽ nghịch với khoảng cách
+		float ca = pa - ra; if (ca < 0) { ca += 2 * PI; } if (ca > 2 * PI) { ca -= 2 * PI; } disF = disF * cos(ca);
+		float lineH = (320 * mapS) / disF; if (lineH > 320) { lineH = 320; }
+		float lineO = 256 - lineH / 2;
+
+		// vẽ từng đường có chiều cao lineH rộng 8 lên màn hình, vì trong vòng lặp nên nó sẽ được vẽ liên tục nhau
+		glColor3f(0, 1, 0); //tia đỏ
+		glLineWidth(8); 
+		glBegin(GL_LINES);//vẽ đường
+		glVertex2i(r*8 + 530, lineO); //lý do + 530 vì do màn hình ta sử dụng độ phân giải 1024x512,nửa kia màn hình là 512x512 đã sử dụng cho bản đồ 2D, vậy còn lại phần sau sử dụng cho 3D
+		glVertex2i(r*8 + 530, lineH + lineO);
+		glEnd();
+
 
 		//sau khi vẽ thì tăng ra thêm 1 độ
 		ra += DR; if (ra < 0) { ra += 2 * PI; } if (ra > 2 * PI) { ra -= 2 * PI; }
