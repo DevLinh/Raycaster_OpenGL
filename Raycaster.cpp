@@ -35,7 +35,7 @@ void drawMap2D()
 			x0 = x * mapS;
 			y0 = y * mapS;
 			glBegin(GL_QUADS); // gọi vẽ hình thang trong GL, ta dùng nó vẽ hình vuông
-			//(x0,y0)--------------(x0+mapS, y0)
+			//A(x0,y0)--------------B(x0+mapS, y0)
 			//   |						|
 			//   |						|
 			//   |						|
@@ -43,11 +43,16 @@ void drawMap2D()
 			//   |						|
 			//   |						|
 			//   |						|
-			//(x0,y0+mapS)---------(x0+mapS,y0+mapS)
-			glVertex2i(x0, y0);
-			glVertex2i(x0, y0 + mapS);
-			glVertex2i(x0 + mapS, y0 + mapS);
-			glVertex2i(x0 + mapS, y0);
+			//C(x0,y0+mapS)---------D(x0+mapS,y0+mapS)
+			//glVertex2i(x0, y0);
+			//glVertex2i(x0, y0 + mapS);
+			//glVertex2i(x0 + mapS, y0 + mapS);
+			//glVertex2i(x0 + mapS, y0);
+			glVertex2i(x0 + 1, y0 + 1); //điểm A ↘
+			glVertex2i(x0 + 1, y0 + mapS - 1); //điểm C ↗
+			glVertex2i(x0 + mapS - 1, y0 + mapS - 1); //điểm D ↖
+			glVertex2i(x0 + mapS - 1, y0 + 1); //điểm B ↙
+			// mục đích tạo đường biên cho mỗi hình vuông
 			glEnd();
 		}
 	}
