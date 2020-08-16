@@ -5,7 +5,7 @@
 #define PI 3.141592653589793238462643383279502884197169399375105820974944592307816406286
 #define P2 PI/2
 #define P3 3*PI/2
-
+#define DR PI/180 //một độ bằng PI/180 radian
 float px, py, pdx, pdy, pa;
 //px, py vị trí của player
 //pdx, pdy là delta x, delta y, một khoảng lệch với vị trí player
@@ -88,7 +88,7 @@ float dist(float ax, float ay, float bx, float by, float ang)
 }
 
 // tạo Ray - Tia
-void drawRays3D() 
+void drawRays2D() 
 {
 	int r, mx, my, mp, dof;
 	float rx, ry, ra, x0, y0; 
@@ -96,9 +96,11 @@ void drawRays3D()
 	// gán góc của tia bằng góc của người chơi
 	// rx, ry là tọa độ vị trí giao điểm của tia với hàng ngang gần điểm gần player nhất theo hướng trên lưới
 	// x0, y0 là các khoảng cố định để tìm ra tọa độ giao với tường theo chiều ngang, sẽ được giải thích cụ thế trong bài báo cáo
-	ra = pa;
+	
+	//ta thử làm tia lệch 30 độ so với hướng nhìn của player hay lệch so với thanh điều hướng
+	ra = pa - DR * 30; if (ra < 0) { ra += 2 * PI; } if (ra > 2 * PI) { ra -= 2 * PI; }
 	// ta bắt đầu với 1 tia (r < 1) :D
-	for (r = 0; r < 1; r++)
+	for (r = 0; r < 60; r++)
 	{
 		
 		// Ta bắt đầu kiểm tra theo chiều NGANG
@@ -217,6 +219,9 @@ void drawRays3D()
 		glVertex2i(px, py);
 		glVertex2i(rx, ry);
 		glEnd();
+
+		//sau khi vẽ thì tăng ra thêm 1 độ
+		ra += DR; if (ra < 0) { ra += 2 * PI; } if (ra > 2 * PI) { ra -= 2 * PI; }
 	}
 }
 
@@ -228,7 +233,7 @@ void display()
 	//gọi hàm vẽ Player vào display
 	drawPlayer();
 	//gọi hàm vẽ tia
-	drawRays3D();
+	drawRays2D();
 	glutSwapBuffers();
 }
 
