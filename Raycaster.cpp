@@ -18,11 +18,11 @@ int map[] =
 {
 	1,1,1,1,1,1,1,1,
 	1,0,0,0,0,0,0,1,
-	1,0,0,1,0,0,0,1,
+	1,0,1,1,0,0,0,1,
 	1,0,0,0,0,0,0,1,
 	1,0,0,0,0,0,0,1,
-	1,0,0,0,1,1,0,1,
-	1,0,0,0,0,0,0,1,
+	1,0,1,0,1,1,0,1,
+	1,0,1,0,0,0,0,1,
 	1,1,1,1,1,1,1,1
 };
 
@@ -292,8 +292,35 @@ void buttons(unsigned char key, int x, int y)
 		pdy = sin(pa) * 5; 
 	};
 	// Sau khi xác định được hướng, W và S đơn giản thay đổi vị trí tiến hoặc lùi của player
-	if (key == 'w') { px += pdx; py += pdy; };
-	if (key == 's') { px -= pdx; py -= pdy; };
+	// kiểm tra xem tại vị trí hiện tại, nếu player tiếp tục di chuyển tới hoặc lùi và ô của tường thì không được di chuyển tiếp
+	// px,py là vị trí hiện tại của player, ta chia lấy phần nguyên px,py với 64 (>> 6), tìm được 2 giá trị tương ứng x0, y0 ở trên phần vẽ bản đồ
+	// sau đó ta kiểm tra giá trị tại ô đó có phải vật cản không
+	int x0, y0;
+	// tiếp theo phải kiểm tra thanh điều hướng, hay hướng di chuyển của player có hướng tới vật cản không px + pdx * 5, py + pdy * 5
+	int pdx0, pdy0;
+	pdx0 = (int)(px + pdx * 2) >> 6;
+	pdy0 = (int)(py + pdy * 2) >> 6;
+	if (map[pdy0 * mapX + pdx0] != 1)
+	{
+		//nếu ta hướng tới và chưa gặp vật cản, ta có thể chuyển tới và lùi
+		// ta có thể di chuyển cho tới khi hướng di chuyển ta cách vật cản một khoảng
+		if (key == 'w') { px += pdx; py += pdy; };
+		//đối với đi lui, ta phải kiểm tra điều kiện khi lui
+		x0 = (int)(px - pdx*2) >> 6;
+		y0 = (int)(py - pdy*2) >> 6;
+		if (key == 's' && map[y0 * mapX + x0] != 1) { px -= pdx; py -= pdy; };
+	}
+	else 
+	{
+		// thanh điều hướng hướng vào vật cản, ta vẫn có thể di chuyển lui, nhưng di chuyển lui vẫn phải kiểm tra nếu tiếp tục lui có gặp vật cản không
+		x0 = (int)(px - pdx) >> 6;
+		y0 = (int)(py - pdy) >> 6;
+		if (key == 's' && map[y0 * mapX + x0] != 1) { px -= pdx; py -= pdy; };
+	}
+	/*
+	if (key == 'w' && map[y0 * mapX + x0] != 1 && map[pdy0 * mapX + pdx0] != 1) { px += pdx; py += pdy; };
+	if (key == 's' && map[y0 * mapX + x0] != 1 && map[pdy0 * mapX + pdy0] != 1) { px -= pdx; py -= pdy; };
+	*/
 	glutPostRedisplay(); // tiến hành vẽ lại trên màn hình mỗi khi nhấn phím
 }
 
