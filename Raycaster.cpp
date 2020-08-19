@@ -25,7 +25,35 @@ int map[] =
 	1,0,1,0,0,0,0,1,
 	1,1,1,1,1,1,1,1
 };
-
+//Định nghĩa food
+typedef struct Food {
+	int xf, yf;//Tọa độ tâm khối hình vuông
+	int size = 10+rand()%20;//Size thức ăn = 1/2 độ dài cạnh
+} Food;
+//Hàm kiểm tra food có chạm với wall
+bool checkFood(int x, int y) {
+	int pfx, pfy;
+	pfx = (int)x >> 6;
+	pfy = (int)y>> 6;
+	return (map[pfy * mapX + pfx]!=0);
+}
+//Vẽ food
+void drawFood(Food* f) {
+	int i = 0;
+	do{
+		f->xf = rand() % 480;
+		f->yf = rand() % 480;
+		i++;
+	} while (checkFood(f->xf - f->size / 2, f->yf - f->size / 2)||checkFood(f->xf + f->size / 2, f->yf - f->size / 2)||checkFood(f->xf + f->size / 2, f->yf + f->size / 2)||checkFood(f->xf - f->size / 2, f->yf + f->size / 2));
+	glColor3f(0.5, 1, 0.2);//Màu sắc food
+	glBegin(GL_QUADS);
+	//Vẽ tọa độ các đỉnh của food
+	glVertex2i(f->xf - f->size / 2, f->yf - f->size / 2);
+	glVertex2i(f->xf + f->size / 2, f->yf - f->size / 2);
+	glVertex2i(f->xf + f->size / 2, f->yf + f->size / 2);
+	glVertex2i(f->xf - f->size / 2, f->yf + f->size / 2);
+	glEnd();
+}
 // khởi tạo hàm vẽ bản đồ lên màn hình
 void drawMap2D()
 {
@@ -251,6 +279,8 @@ void display()
 	drawMap2D();
 	//gọi hàm vẽ Player vào display
 	drawPlayer();
+	Food s;
+	drawFood(&s);
 	//gọi hàm vẽ tia
 	drawRays2D();
 	glutSwapBuffers();
