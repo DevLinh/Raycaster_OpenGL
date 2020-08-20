@@ -2,6 +2,7 @@
 #include "Dependencies/glew/glew.h"
 #include "Dependencies/freeglut/freeglut.h"
 #include <math.h>
+#include <stdio.h>
 #define PI 3.141592653589793238462643383279502884197169399375105820974944592307816406286
 #define P2 PI/2
 #define P3 3*PI/2
@@ -30,6 +31,11 @@ typedef struct Food {
 	int xf, yf;//Tọa độ tâm khối hình vuông
 	int size = 10+rand()%20;//Size thức ăn = 1/2 độ dài cạnh
 } Food;
+
+//tạo một biến lưu trữ food cho toàn chương trình
+Food food;
+//taọ biến lưu trữ điểm
+int points;
 //Hàm kiểm tra food có chạm với wall
 bool checkFood(int x, int y) {
 	int pfx, pfy;
@@ -37,21 +43,33 @@ bool checkFood(int x, int y) {
 	pfy = (int)y>> 6;
 	return (map[pfy * mapX + pfx]!=0);
 }
-//Vẽ food
-void drawFood(Food* f) {
+
+//kiem tra xem food bi an chua (player cham vào hay vào bên trong mồi được coi là ăn mồi)
+bool isEated(Food f)
+{
+	return (px > f.xf - f.size / 2  && px  < f.xf + f.size / 2) && (py > f.yf - f.size / 2 && py < f.yf + f.size/2);
+}
+//Vẽ food- bây giờ ta sẽ chỉnh sửa lại, sẽ random vị trí mới cho mồi nếu kiểm tra là mồi random lúc khởi tạo bị ăn, hàm draw bây giờ ko chịu trách nhiệm tạo random mồi nữa, việc này sẽ do một hàm riêng biệt đảm nhiệm
+//tạo hàm tạo mồi ngẫu nhiên phù hợp điều kiện
+Food randomFood()
+{
+	Food f;
 	int i = 0;
-	do{
-		f->xf = rand() % 480;
-		f->yf = rand() % 480;
+	do {
+		f.xf = (rand() % (480 - 64 + 1)) + 64;
+		f.yf = (rand() % (480 - 64 + 1)) + 64;
 		i++;
-	} while (checkFood(f->xf - f->size / 2, f->yf - f->size / 2)||checkFood(f->xf + f->size / 2, f->yf - f->size / 2)||checkFood(f->xf + f->size / 2, f->yf + f->size / 2)||checkFood(f->xf - f->size / 2, f->yf + f->size / 2));
+	} while (checkFood(f.xf - f.size / 2, f.yf - f.size / 2) || checkFood(f.xf + f.size / 2, f.yf - f.size / 2) || checkFood(f.xf + f.size / 2, f.yf + f.size / 2) || checkFood(f.xf - f.size / 2, f.yf + f.size / 2));
+	return f;
+}
+void drawFood(Food f) {
 	glColor3f(0.5, 1, 0.2);//Màu sắc food
 	glBegin(GL_QUADS);
 	//Vẽ tọa độ các đỉnh của food
-	glVertex2i(f->xf - f->size / 2, f->yf - f->size / 2);
-	glVertex2i(f->xf + f->size / 2, f->yf - f->size / 2);
-	glVertex2i(f->xf + f->size / 2, f->yf + f->size / 2);
-	glVertex2i(f->xf - f->size / 2, f->yf + f->size / 2);
+	glVertex2i(f.xf - f.size / 2, f.yf - f.size / 2);
+	glVertex2i(f.xf + f.size / 2, f.yf - f.size / 2);
+	glVertex2i(f.xf + f.size / 2, f.yf + f.size / 2);
+	glVertex2i(f.xf - f.size / 2, f.yf + f.size / 2);
 	glEnd();
 }
 // khởi tạo hàm vẽ bản đồ lên màn hình
@@ -279,8 +297,17 @@ void display()
 	drawMap2D();
 	//gọi hàm vẽ Player vào display
 	drawPlayer();
-	Food s;
-	drawFood(&s);
+	if (isEated(food))
+	{
+		points += food.size;
+		food = randomFood();
+		printf("new %d, %d\n", food.xf, food.yf);
+		printf("points %d\n", points);
+	}
+	else
+	{
+		drawFood(food);
+	}
 	//gọi hàm vẽ tia
 	drawRays2D();
 	glutSwapBuffers();
@@ -363,6 +390,10 @@ void init()
 	// khởi tạo vị trí ban đầu cho player bằng tay 
 	px = 300;
 	py = 300;
+	//khởi tạo một giá trị ban đầu phù hợp cho food
+	food = randomFood();
+	printf("%d, %d\n", food.xf, food.yf);
+	printf("an roi: %d\n", isEated(food));
 };
 
 int main(int argc, char** argv)
