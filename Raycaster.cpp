@@ -30,7 +30,7 @@ int map[] =
 typedef struct Food {
 	int xf, yf;//Tọa độ tâm khối hình vuông
 	int size = 10+rand()%20;//Size thức ăn = 1/2 độ dài cạnh
-} Food;
+};
 
 //tạo một biến lưu trữ food cho toàn chương trình
 Food food;
@@ -40,7 +40,7 @@ int points;
 bool checkFood(int x, int y) {
 	int pfx, pfy;
 	pfx = (int)x >> 6;
-	pfy = (int)y>> 6;
+	pfy = (int)y >> 6;
 	return (map[pfy * mapX + pfx]!=0);
 }
 
@@ -63,7 +63,7 @@ Food randomFood()
 	return f;
 }
 void drawFood(Food f) {
-	glColor3f(0.5, 1, 0.2);//Màu sắc food
+	glColor3f(0.5, 0, 1);//Màu sắc food
 	glBegin(GL_QUADS);
 	//Vẽ tọa độ các đỉnh của food
 	glVertex2i(f.xf - f.size / 2, f.yf - f.size / 2);
@@ -121,6 +121,7 @@ void drawPlayer() {
 	// vẽ thanh điều hướng khi có pa (khi nhấm A hoặc D)
 	glLineWidth(3); // thanh điều hướng màu vang
 	glBegin(GL_LINES);
+	glColor3f(1, 0, 0); // màu đỏ
 	//vị trí player chính là điểm đầu của thanh điều hướng
 	glVertex2i(px, py);
 	// điểm còn lại được xác định theo góc pa, truy nhiên pdx và pdx các player 1 khoảng nhó, ta nhân đồng thời với 5 để tăng chiều dài của thanh điều hướng
@@ -132,6 +133,91 @@ float dist(float ax, float ay, float bx, float by, float ang)
 {
 	return  (sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay))) ;
 }
+// để tìm giao điểm giữa mồi với tia, ta quy về bài toán tìm giao điểm giữa 2 đường thẳng, đồng thời kiểm tra giá trị của giao điểm đó có năm trong khoảng của food không
+// cho nên bước đầu tiên ta cần tìm ra giao điểm của phương trình đường thẳng tia và mặt tiếp tia
+// bước đầu tiên ta cần xây dựng được phương trình đường thẳng của tia và phương trình đường thẳng của mặt tiếp tia
+struct crossPoint
+{
+	float cx;
+	float cy;
+	float discp = 100000;
+};
+
+crossPoint minDistCP(crossPoint cp[])
+{
+	crossPoint minDistP = cp[0];
+	for (int i = 1; i < 4; i++)
+	{
+		if (cp[i].discp < minDistP.discp)
+		{
+			minDistP = cp[i];
+		}
+	}
+	if (minDistP.discp != 100000)
+	{
+		return minDistP;
+	}
+	else
+	{
+		minDistP.cx = minDistP.cy = 0;
+		return minDistP;
+	}
+	
+}
+// một phương trình đường thẳng dạng y = ax + b; với 2 điểm cho trước (gồm (px,py) và (rx, ry) sau khi tìm ra giao điểm của tia với tường, ta giải bài toán hệ phương trình 2 ẩn tìm ra cặp hệ số a và b, từ đó tìm ra phương trình đường thẳng của tia
+// sau đó truyền và phương trình đường thẳng của mặt tiếp tia, ta tìm ra giao điểm
+crossPoint findCrossPoint(float px, float py, float rx, float ry, float ra)
+{
+	// py = a.px + b
+	// ry = a.rx + b
+	float a = (ry - py) / (rx - px);
+	float b = py - a * px;
+	// vì bài toán xét giao điểm đường thẳng nên không xét theo hướng lên hay xuống, ta xét theo hướng là dọc hay ngang
+	// xét khối thức ăn có 4 mặt, 2 mặt trên dưới tương ứng với hai đường thẳng y và hai mặt trái phải với 2 đường thẳng x
+	// x = food.xf + food.size/2 (1)
+	// x = food.xf - food.size/2 (2)
+	// y = food.yf + food.size/2 (3)
+	// y = food.yf - food.size/2 (4)
+	crossPoint cpH1, cpH2; // lần lượt là giao điểm với đường thẳng mặt ngang (3) và (4)
+	crossPoint cpV1, cpV2; // lần lượt là giao điểm với đường thẳng 2 mặt trái phải (4) và (3)
+	cpH1.cx = cpH2.cx = cpH1.cy = cpH2.cy = cpV1.cx = cpV2.cx = cpV1.cy = cpV2.cy = 0;
+	if (ra != 0 && ra != PI)
+	{
+		cpH1.cy = food.yf + food.size / 2;
+		cpH2.cy = food.yf - food.size / 2;
+
+		cpH1.cx = (cpH1.cy - b) / a;
+		cpH2.cx = (cpH2.cy - b) / a;
+	}
+	if (ra != P2 && ra != P3)
+	{
+		cpV1.cx = food.xf - food.size / 2;
+		cpV2.cx = food.xf + food.size / 2;
+
+		cpV1.cy = a * cpV1.cx + b;
+		cpV2.cy = a * cpV2.cx + b;
+	}
+	//float discpH1, discpH2, discpV1, discpV2 = 100000;
+	if ( (cpH1.cx >= (food.xf - food.size / 2)) && (cpH1.cx <= (food.xf + food.size / 2) ))
+	{
+		cpH1.discp = dist(px, py, cpH1.cx, cpH1.cy, ra);
+	}
+	if ((cpH2.cx >= (food.xf - food.size / 2)) && (cpH2.cx <= (food.xf + food.size / 2)))
+	{
+		cpH2.discp = dist(px, py, cpH2.cx, cpH2.cy, ra);
+	}
+	if ((cpV1.cy >= (food.yf - food.size / 2)) && (cpV1.cy <= (food.yf + food.size / 2)))
+	{
+		cpV1.discp = dist(px, py, cpV1.cx, cpV1.cy, ra);
+	}
+	if ((cpV2.cy >= (food.yf - food.size / 2)) && (cpV2.cy <= (food.yf + food.size / 2)))
+	{
+		cpV2.discp = dist(px, py, cpV2.cx, cpV2.cy, ra);
+	}
+	crossPoint cp[] = { cpH1, cpH2, cpV1, cpV2 };
+	return minDistCP(cp);
+}
+
 
 // tạo Ray - Tia
 void drawRays2D() 
@@ -142,7 +228,7 @@ void drawRays2D()
 	// gán góc của tia bằng góc của người chơi
 	// rx, ry là tọa độ vị trí giao điểm của tia với hàng ngang gần điểm gần player nhất theo hướng trên lưới
 	// x0, y0 là các khoảng cố định để tìm ra tọa độ giao với tường theo chiều ngang, sẽ được giải thích cụ thế trong bài báo cáo
-	
+	float fx, fy;
 	//tạo một biến lưu trữ khoảng cách sau khi quyết định chọn tia nào
 	float disF;
 	//ta thử làm tia lệch 30 độ so với hướng nhìn của player hay lệch so với thanh điều hướng
@@ -170,6 +256,12 @@ void drawRays2D()
 			rx = (py - ry) * aTan + px;
 			y0 = -64;
 			x0 = -y0 * aTan;
+			// giao điểm giữa tia với khối thức ăn - trường hợp player và khối food ở trong cùng 1 ô
+			if ( ((int)px >> 6 == food.xf >> 6) && ((int)py >> 6 == food.yf) )
+			{
+				fy = food.yf - food.size / 2;
+				fx = rx = (py - fy) * aTan + px;
+			}
 		}
 		if (ra < PI) // hướng xuống
 		{
@@ -179,6 +271,11 @@ void drawRays2D()
 			rx = (py - ry) * aTan + px;
 			y0 = 64;
 			x0 = -y0 * aTan;
+			if ((int)px >> 6 == food.xf >> 6 && (int)py >> 6 == food.yf)
+			{
+				fy = food.yf + food.size / 2;
+				fx = rx = (py - fy) * aTan + px;
+			}
 		}
 		if (ra == 0 || ra == PI) // trường hợp tia năm ngang thì tạm thời nhìn thẳng
 		{
@@ -203,9 +300,7 @@ void drawRays2D()
 				dof += 1;
 			}
 		}
-
-
-
+		
 		// Ta bắt đầu kiểm tra theo chiều DỌC
 		// cụ thể là kiểm tra theo từng hàng ngang trên lưới, nếu tia gặp chướng ngại vật thì ngắt tia tại đó
 		dof = 0;
@@ -260,30 +355,69 @@ void drawRays2D()
 		// sau đó ta so sánh khoảng cách giữa vị trí player tới giao điểm của 2 tia tới vật cản, tìm được tia phù hợp
 		if (disH > disV) { rx = vx; ry = vy; disF = disV; }
 		if (disH < disV) { rx = hx; ry = hy; disF = disH; }
-		// vẽ tia
-		glColor3f(1, 0, 0); //tia đỏ
-		glLineWidth(1); // độ dộng tia chỉ bằng 1
-		glBegin(GL_LINES);//vẽ đường
-		glVertex2i(px, py);
-		glVertex2i(rx, ry);
-		glEnd();
+
+		// ta kiểm tra nếu trả thanh điều hướng (đỉnh thanh) và food cũng trong góc phần tư thì mới tính toán giao điểm
+		// nếu kết quả tìm điểm giao là một điểm có tọa độ (0,0) thì chính là tia đó ko giao với food
+		float disCP = 100000;
+		if ((food.xf - px) * (rx - px) > 0 && (food.yf - py) * (ry - py) > 0)
+		{
+			crossPoint cp = findCrossPoint(px, py, rx, ry, ra);
+			if (cp.cx != 0 && cp.cy != 0 && cp.discp < disF)
+			{
+				printf("crossPoint (%f, %f)\n", cp.cx, cp.cy);
+				printf("dis = %f\n", cp.discp);
+				// vẽ tia chiếu tới mồi
+				glColor3f(0, 1, 0); //tia xanh
+				glLineWidth(1); // độ dộng tia chỉ bằng 1
+				glBegin(GL_LINES);//vẽ đường
+				glVertex2i(px, py);
+				glVertex2i(cp.cx, cp.cy);
+				glEnd();
+				disCP = cp.discp;
+			}
+		}
+
+	
+		// vẽ tia chiếu tới tường
+		if (disF < disCP) {
+			glColor3f(1, 1, 1); //tia trắng
+			glLineWidth(1); // độ dộng tia chỉ bằng 1
+			glBegin(GL_LINES);//vẽ đường
+			glVertex2i(px, py);
+			glVertex2i(rx, ry);
+			glEnd();
+		}
+		
+		
 
 		//3D WALL
 		// tiến hành vẽ các bức tường 3D bên màn hình phải
 		// ta sẽ biễu diễn cảnh 3D trên màn hình kích thước 320x160px, khoảng cách càng xa thì vât càng nhỏ
 		// mapS = 64 chính là kích thước của hình vuông trên 2D, cũng chính là kích thước khối lập phương trên không gian 3D, chính vì thế mỗi đường vẽ lên cảnh 3d sẽ nghịch với khoảng cách
 		float ca = pa - ra; if (ca < 0) { ca += 2 * PI; } if (ca > 2 * PI) { ca -= 2 * PI; } disF = disF * cos(ca);
-		float lineH = (320 * mapS) / disF; if (lineH > 320) { lineH = 320; }
+		float lineH = (320 * mapS) / disF; if (lineH > 320) { lineH = 320; } // chiều cao của mỗi đường tường
 		float lineO = 256 - lineH / 2;
 
 		// vẽ từng đường có chiều cao lineH rộng 8 lên màn hình, vì trong vòng lặp nên nó sẽ được vẽ liên tục nhau
-		glColor3f(0, 1, 0); //tia đỏ
+		glColor3f(0, 1, 0); //các dòng màu xanh
 		glLineWidth(8); 
 		glBegin(GL_LINES);//vẽ đường
 		glVertex2i(r*8 + 530, lineO); //lý do + 530 vì do màn hình ta sử dụng độ phân giải 1024x512,nửa kia màn hình là 512x512 đã sử dụng cho bản đồ 2D, vậy còn lại phần sau sử dụng cho 3D
 		glVertex2i(r*8 + 530, lineH + lineO);
 		glEnd();
 
+		if (disF > disCP)
+		{
+			disCP = disCP * cos(ca);
+			float foodH = (320 * food.size) / disCP; if (foodH > 320) { foodH = 320; }// chiều cao của khối thức ăn
+			float foodO = 256 - foodH / 2;
+			glColor3f(0.5, 0, 1); //các dòng màu xanh
+			glLineWidth(8);
+			glBegin(GL_LINES);//vẽ đường
+			glVertex2i(r * 8 + 530, foodO); //lý do + 530 vì do màn hình ta sử dụng độ phân giải 1024x512,nửa kia màn hình là 512x512 đã sử dụng cho bản đồ 2D, vậy còn lại phần sau sử dụng cho 3D
+			glVertex2i(r * 8 + 530, foodH + foodO);
+			glEnd();
+		}
 
 		//sau khi vẽ thì tăng ra thêm 1 độ
 		ra += DR; if (ra < 0) { ra += 2 * PI; } if (ra > 2 * PI) { ra -= 2 * PI; }
