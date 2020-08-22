@@ -3,6 +3,11 @@
 #include "Dependencies/freeglut/freeglut.h"
 #include <math.h>
 #include <stdio.h>
+#include <sys/timeb.h>
+#include <sys/utime.h>
+#include <string>
+static int point;  // Điểm của người chơi
+#define fps 25
 #define PI 3.141592653589793238462643383279502884197169399375105820974944592307816406286
 #define P2 PI/2
 #define P3 3*PI/2
@@ -423,10 +428,48 @@ void drawRays2D()
 		ra += DR; if (ra < 0) { ra += 2 * PI; } if (ra > 2 * PI) { ra -= 2 * PI; }
 	}
 }
-
+//Hàm  đếm milli giây
+int getMilliCount() {
+	timeb tb;
+	ftime(&tb);
+	int nCount = tb.millitm + (tb.time & 0xfffff) * 1000;
+	return nCount;
+}
+//Hàm cho máy nghĩ đến sleeptime milli giây
+void sleep(int sleeptime)
+{
+	int count = 0;
+	int beginsleep = getMilliCount();
+	while (getMilliCount() - beginsleep < sleeptime)
+	{
+		count++;
+	}
+}
+//Vẽ chữ 
+void drawText(const std::string& text, const unsigned int x, const unsigned int y, const float r, const float g, const float b)
+{
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+	glOrtho(0, 200, 0, 200, 0, 1);
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+	glColor3f(r, g, b); //Chỉnh màu chữ
+	glRasterPos2i(x, y); //Di chuyển tới vị trí x,y. tính theo pixel
+	for (const char c : text)
+		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, (int)c); //thực hiện vẽ từng kí tự của chuỗi kí tự
+	glPopMatrix();
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+	glMatrixMode(GL_MODELVIEW);
+}
 void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	//gọi hàm vẽ Map
+	int beginFrame = getMilliCount();
+
 	//gọi hàm vẽ Map
 	drawMap2D();
 	//gọi hàm vẽ Player vào display
@@ -442,8 +485,34 @@ void display()
 	{
 		drawFood(food);
 	}
+	std::string s = "Points: " + std::to_string(point);
+	drawText(s, 100, 190, 1, 0.5, 0);
+
+	std::string s1 = "Exist time: ";
+	drawText(s1, 170, 190, 1, 0.5, 0);
 	//gọi hàm vẽ tia
 	drawRays2D();
+
+	int timeDiff = getMilliCount() - beginFrame;//Thời gian thự hiện xong chu trình lặp
+	int sleepTime = (int)((1000 / fps) - timeDiff);
+	int framesSkipped = 0;//Số khung hình đã bỏ qua
+
+
+	if (sleepTime > 0) {
+		//Máy dựng được nhiều hơn 25fps thì cho máy sleep
+		sleep(sleepTime);
+	}
+	//Skip tối đa 5 frame (nếu máy không dựng đủ 25fps )
+	while (sleepTime < 0 && framesSkipped <= 5) {
+		display();
+		sleepTime + (1000 / fps);
+		framesSkipped++;
+	}
+	if (framesSkipped >= 5) {
+		printf("Xin lỗi, game quá đẳng cấp.");
+		exit(2);
+
+	}
 	glutSwapBuffers();
 }
 
