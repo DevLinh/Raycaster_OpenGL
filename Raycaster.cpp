@@ -3,10 +3,18 @@
 #include "Dependencies/freeglut/freeglut.h"
 #include <math.h>
 #include <stdio.h>
+#include <sys/timeb.h>
+#include <sys/utime.h>
+#include <string>
 #define PI 3.141592653589793238462643383279502884197169399375105820974944592307816406286
 #define P2 PI/2
 #define P3 3*PI/2
 #define DR PI/180 //một độ bằng PI/180 radian
+#define MAX_FPS 25
+#define MAX_FRAME_SKIPS 5
+#define FRAME_PERIOD (1000/ MAX_FPS)
+#define COUNTDOWN 15000 //miliseconds
+
 float px, py, pdx, pdy, pa;
 //px, py vị trí của player
 //pdx, pdy là delta x, delta y, một khoảng lệch với vị trí player
@@ -36,6 +44,11 @@ typedef struct Food {
 Food food;
 //taọ biến lưu trữ điểm
 int points;
+//tạo biết đếm ngược
+int countdown;
+// tạo biến nếu game còn chạy
+bool running;
+bool replay;
 //Hàm kiểm tra food có chạm với wall
 bool checkFood(int x, int y) {
 	int pfx, pfy;
@@ -143,6 +156,7 @@ struct crossPoint
 	float discp = 100000;
 };
 
+// hàm tìm crossPoint có khoảng cách tới player ngắn nhất trong mảng chứa 4 crossPoint
 crossPoint minDistCP(crossPoint cp[])
 {
 	crossPoint minDistP = cp[0];
@@ -153,10 +167,12 @@ crossPoint minDistCP(crossPoint cp[])
 			minDistP = cp[i];
 		}
 	}
+	//nếu điểm nào phù hợp với yêu cầu thì trả về
 	if (minDistP.discp != 100000)
 	{
 		return minDistP;
 	}
+	//nếu không có trường hợp nào thỏa mãn, ta trả về một điểm có tọa độ mặc định (0,0)
 	else
 	{
 		minDistP.cx = minDistP.cy = 0;
@@ -219,7 +235,7 @@ crossPoint findCrossPoint(float px, float py, float rx, float ry, float ra)
 }
 
 
-// tạo Ray - Tia
+// tạo Ray - Tia, đồng thời vẽ luôn trên mặt giả lập 3D
 void drawRays2D() 
 {
 	int r, mx, my, mp, dof;
@@ -364,8 +380,8 @@ void drawRays2D()
 			crossPoint cp = findCrossPoint(px, py, rx, ry, ra);
 			if (cp.cx != 0 && cp.cy != 0 && cp.discp < disF)
 			{
-				printf("crossPoint (%f, %f)\n", cp.cx, cp.cy);
-				printf("dis = %f\n", cp.discp);
+				//printf("crossPoint (%f, %f)\n", cp.cx, cp.cy);
+				//printf("dis = %f\n", cp.discp);
 				// vẽ tia chiếu tới mồi
 				glColor3f(0, 1, 0); //tia xanh
 				glLineWidth(1); // độ dộng tia chỉ bằng 1
@@ -423,33 +439,68 @@ void drawRays2D()
 		ra += DR; if (ra < 0) { ra += 2 * PI; } if (ra > 2 * PI) { ra -= 2 * PI; }
 	}
 }
-
-void display()
+// hàm hiển thị text lên màn hình có tùy chọn màu sắc chữ
+void drawText(const std::string& text, const unsigned int x, const unsigned int y, const float r, const float g, const float b)
+{
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+	glOrtho(0, 200, 0, 200, 0, 1);
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+	glColor3f(r, g, b); //Chỉnh màu chữ
+	glRasterPos2i(x, y); //Di chuyển tới vị trí x,y. tính theo pixel
+	for (const char c : text)
+		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, (int)c); //thực hiện vẽ từng kí tự của chuỗi kí tự
+	glPopMatrix();
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+	glMatrixMode(GL_MODELVIEW);
+}
+// hàm hiển thị - tương ứng với hàm Render()
+void Render()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	//gọi hàm vẽ Map
 	drawMap2D();
-	//gọi hàm vẽ Player vào display
+	//gọi hàm vẽ Player vào Render
 	drawPlayer();
-	if (isEated(food))
-	{
-		points += food.size;
-		food = randomFood();
-		printf("new %d, %d\n", food.xf, food.yf);
-		printf("points %d\n", points);
-	}
-	else
-	{
-		drawFood(food);
-	}
-	//gọi hàm vẽ tia
+	//nếu mồi được ăn rồi thì tiến hành tạo một mồi ở vị trí mới và vẽ lại mồi
+	drawFood(food);
+	//gọi hàm vẽ tia và mặt giả lập 3D
 	drawRays2D();
+	//gọi hàm vẽ số điểm lên màn hình
+	std::string stringPoint = "Points: " + std::to_string(points);
+	drawText(stringPoint, 170, 190, 1, 0.5, 0);
+	//vẽ thời gian còn lại trên màn hình
+	std::string stringCountdown= "Remain: " + std::to_string(countdown/1000) + "s";
+	if (countdown > 5000)
+	{
+		drawText(stringCountdown, 140, 190, 0, 0.9, 0);
+	}
+	else {
+		drawText(stringCountdown, 140, 190, 1, 0, 0);
+	}
+	
+	//
+	if (running == false)
+	{
+		std::string over = "GAME OVER";
+		drawText(over, 135, 100, 1, 0, 0);
+		std::string again = "press 'R' to play again";
+		drawText(again, 128, 90, 1, 0, 0.1);
+	}
 	glutSwapBuffers();
 }
 
-// di chuyển player khi nhấn ADWS, hiện tại chỉ di chuyển ngang và dọc, chưa thể di chuyển chéo
-void buttons(unsigned char key, int x, int y)
+// di chuyển player khi nhấn ADWS, hiện tại chỉ di chuyển ngang và dọc, chưa thể di chuyển chéo - tương ứng với Input, tuy nhiên hiện tại chỉ khi bấm buttons thì các hình ảnh được vẽ lại, ta cần tổ chức lại
+void InputProcess(unsigned char key, int x, int y)
 {
+	if (key == 'r')
+	{
+		replay = true;
+	}
 	// di chuyển vị trí 1 khoảng 5 đơn vị tùy hướng di chuyển
 	/*
 	if (key == 'a') { px -= 5; }; // 'a' thì di chuyển qua trái, vị trí bị dịch chuyển giảm trên trục hoành 1 khoảng 5 đơn vị
@@ -512,9 +563,26 @@ void buttons(unsigned char key, int x, int y)
 	if (key == 'w' && map[y0 * mapX + x0] != 1 && map[pdy0 * mapX + pdx0] != 1) { px += pdx; py += pdy; };
 	if (key == 's' && map[y0 * mapX + x0] != 1 && map[pdy0 * mapX + pdy0] != 1) { px -= pdx; py -= pdy; };
 	*/
-	glutPostRedisplay(); // tiến hành vẽ lại trên màn hình mỗi khi nhấn phím
 }
 
+int getMilliCount() {
+	timeb tb;
+	ftime(&tb);
+	int nCount = tb.millitm + (tb.time & 0xfffff) * 1000;
+	return nCount;
+}
+void sleep(int sleeptime)
+{
+	int count = 0;
+	int beginsleep = getMilliCount();
+	while (getMilliCount() - beginsleep < sleeptime)
+	{
+		count++;
+	}
+}
+//
+
+// khởi tạo băn đầu
 void init()
 {
 	//set màu nền về màu đen xám
@@ -526,9 +594,60 @@ void init()
 	py = 300;
 	//khởi tạo một giá trị ban đầu phù hợp cho food
 	food = randomFood();
-	printf("%d, %d\n", food.xf, food.yf);
-	printf("an roi: %d\n", isEated(food));
+	countdown = COUNTDOWN + 1;
+	running = true;
+	replay = false;
 };
+
+
+void UpdateWorld(void)
+{
+	if (replay == true)
+	{
+		// khởi tạo vị trí ban đầu cho player bằng tay 
+		px = 300;
+		py = 300;
+		//khởi tạo một giá trị ban đầu phù hợp cho food
+		points = 0;
+		food = randomFood();
+		countdown = COUNTDOWN + 1;
+		running = true;
+		replay = false;
+	}
+	if (isEated(food))
+	{
+		points += food.size;
+		food = randomFood();
+		countdown = COUNTDOWN + 1;
+	}
+	else
+	{
+		/*
+		if (countdown - (getMilliCount() - startTime) > 0)
+		{
+			countdown = countdown - (getMilliCount() - startTime);
+		}*/
+		if (countdown - 50 > 0)
+		{
+			countdown = countdown - 50;
+		}
+	}
+	
+	
+	int beginFrame = getMilliCount();
+	if (countdown - 50 <= 0)
+	{ 
+		running = false;
+	}
+	glutPostRedisplay();
+	int timeDiff = getMilliCount() - beginFrame;
+	int sleepTime = (int)(FRAME_PERIOD - timeDiff);
+	if (sleepTime  > 0 )
+	{
+		sleep(sleepTime);
+	}
+}
+
 
 int main(int argc, char** argv)
 {
@@ -538,9 +657,10 @@ int main(int argc, char** argv)
 	glutInitWindowPosition(100, 100); // vị trí cửa sổ khởi đầu 100x100
 	glutCreateWindow("Raycaster");
 	init();
-	glutDisplayFunc(display);
-	// set Keyboard Func là hàm buttons, di chuyển player
-	glutKeyboardFunc(buttons);
+	glutDisplayFunc(Render);
+	// set Keyboard Func là hàm InputProcess, di chuyển player
+	glutKeyboardFunc(InputProcess);
+	glutIdleFunc(UpdateWorld);
 	glutMainLoop();
 	return 0;
 }
