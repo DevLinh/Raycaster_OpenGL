@@ -497,7 +497,7 @@ void Render()
 // di chuyển player khi nhấn ADWS, hiện tại chỉ di chuyển ngang và dọc, chưa thể di chuyển chéo - tương ứng với Input, tuy nhiên hiện tại chỉ khi bấm buttons thì các hình ảnh được vẽ lại, ta cần tổ chức lại
 void InputProcess(unsigned char key, int x, int y)
 {
-	if (key == 'r')
+	if (key == 'r' && running == false)
 	{
 		replay = true;
 	}
@@ -510,7 +510,7 @@ void InputProcess(unsigned char key, int x, int y)
 	*/
 	// Ta cần player di chuyển linh hoạt hơn, player cần có thể xoay 360 độ và di chuyển theo hướng đó
 	//Hai phim A và D giờ đóng vai trò thay đổi hướng di chuyển của player, sẽ được biểu diễn bởi một thanh điều hướng ngắn
-	if (key == 'a') 
+	if (key == 'a' && running == true)
 	{ 
 		pa -= 0.1;  // A hướng sang trái, đồng nghĩa việc xoay ngược chiều kim đồng hồ
 		// đưa pa về 2PI khi pa < 0
@@ -523,7 +523,7 @@ void InputProcess(unsigned char key, int x, int y)
 		pdx = cos(pa) * 5; 
 		pdy = sin(pa) * 5; 
 	};
-	if (key == 'd') 
+	if (key == 'd' && running == true) 
 	{ 
 		pa += 0.1; 
 		if (pa > 2 * PI) 
@@ -546,18 +546,18 @@ void InputProcess(unsigned char key, int x, int y)
 	{
 		//nếu ta hướng tới và chưa gặp vật cản, ta có thể chuyển tới và lùi
 		// ta có thể di chuyển cho tới khi hướng di chuyển ta cách vật cản một khoảng
-		if (key == 'w') { px += pdx; py += pdy; };
+		if (key == 'w' && running == true) { px += pdx; py += pdy; };
 		//đối với đi lui, ta phải kiểm tra điều kiện khi lui
 		x0 = (int)(px - pdx*2) >> 6;
 		y0 = (int)(py - pdy*2) >> 6;
-		if (key == 's' && map[y0 * mapX + x0] != 1) { px -= pdx; py -= pdy; };
+		if (key == 's' && map[y0 * mapX + x0] != 1 && running == true) { px -= pdx; py -= pdy; };
 	}
 	else 
 	{
 		// thanh điều hướng hướng vào vật cản, ta vẫn có thể di chuyển lui, nhưng di chuyển lui vẫn phải kiểm tra nếu tiếp tục lui có gặp vật cản không
 		x0 = (int)(px - pdx) >> 6;
 		y0 = (int)(py - pdy) >> 6;
-		if (key == 's' && map[y0 * mapX + x0] != 1) { px -= pdx; py -= pdy; };
+		if (key == 's' && map[y0 * mapX + x0] != 1 && running == true) { px -= pdx; py -= pdy; };
 	}
 	/*
 	if (key == 'w' && map[y0 * mapX + x0] != 1 && map[pdy0 * mapX + pdx0] != 1) { px += pdx; py += pdy; };
